@@ -1,0 +1,52 @@
+version: "3"
+services:
+
+  wikijs-postgres:
+    container_name: wikijs-postgres
+    image: postgres:11
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_USER=${POSTGRES_USER}
+    logging:
+      driver: "none"
+    restart: unless-stopped
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  wikijs:
+    container_name: wikijs
+    image: requarks/wiki:2
+    depends_on:
+      wikijs-postgres:
+        condition: service_healthy
+    environment:
+      - DB_TYPE=postgres
+      - DB_HOST=wikijs-postgres
+      - DB_PORT=5432
+      - DB_USER=${POSTGRES_USER}
+      - DB_PASS=${POSTGRES_PASSWORD}
+      - DB_NAME=${POSTGRES_DB}
+      - VIRTUAL_HOST=${VIRTUAL_HOST}
+      - VIRTUAL_PORT=${VIRTUAL_PORT}
+      - LETSENCRYPT_HOST=${LETSENCRYPT_HOST}
+      - LETSENCRYPT_EMAIL=${LETSENCRYPT_EMAIL}
+    restart: unless-stopped   
+  
+  wikijs-adminer:
+    container_name: wikijs-adminer
+    image: adminer
+    restart: unless-stopped  
+    environment:
+      - VIRTUAL_HOST=${VIRTUAL_HOST_AD}
+      - VIRTUAL_PORT=${VIRTUAL_HOST_AD_PORT}
+      - LETSENCRYPT_HOST=${LETSENCRYPT_HOST_AD}
+      - LETSENCRYPT_EMAIL=${LETSENCRYPT_EMAIL_AD}
+
+volumes:
+  db-data:
